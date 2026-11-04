@@ -46,7 +46,7 @@ describe("redirect checkout", { tags: ["redirect"], skip, retries: 2, timeout: 1
       await agent.assert("PayPal shows the buyer's ways to pay, a total of $20.00, and a Complete Purchase button");
 
       await agent.act("click Complete Purchase");
-      await expect(screen.getByTestId("payment-status")).toHaveText("Paid", { timeout: 30_000 });
+      await expect(screen.getByTestId("payment-status")).toHaveText("paid", { timeout: 30_000 });
       await expect(browser).toHaveURL(`/return?order_id=${orderId}`);
 
       const { result: order } = await paypal.getOrder({ id: orderId });
@@ -66,7 +66,7 @@ describe("redirect checkout", { tags: ["redirect"], skip, retries: 2, timeout: 1
       await fillCardForm(agent, card);
 
       await agent.act("pay with this card as a guest");
-      await expect(screen.getByTestId("payment-status")).toHaveText("Paid", { timeout: 45_000 });
+      await expect(screen.getByTestId("payment-status")).toHaveText("paid", { timeout: 45_000 });
       await expect(browser).toHaveURL(`/return?order_id=${orderId}`);
 
       const { result: order } = await paypal.getOrder({ id: orderId });
@@ -79,7 +79,7 @@ describe("redirect checkout", { tags: ["redirect"], skip, retries: 2, timeout: 1
   test(
     "a card the bank refuses leaves the order unpaid",
     {
-      agentContext: `${GUEST_CONTEXT} CCREJECT-REFUSED as the first name is a PayPal sandbox trigger that makes the bank refuse the card, so type it exactly as given. A refusal is the expected outcome: PayPal saying the card was declined, or our shop's page saying Not paid.`,
+      agentContext: `${GUEST_CONTEXT} CCREJECT-REFUSED as the first name is a PayPal sandbox trigger that makes the bank refuse the card, so type it exactly as given. A refusal is the expected outcome: PayPal saying the card was declined, or our shop's page saying not paid.`,
     },
     async ({ app, agent, browser, screen, paypal, startCheckout }) => {
       await app.open("/");
@@ -100,8 +100,8 @@ describe("redirect checkout", { tags: ["redirect"], skip, retries: 2, timeout: 1
       }
 
       // Or it approves the order and refuses our capture: /return offers another way to pay.
-      await expect(screen.getByTestId("payment-status")).toHaveText("Not paid", { timeout: 30_000 });
-      await expect(screen.getByRole("link", "Choose another way to pay")).toBeVisible();
+      await expect(screen.getByTestId("payment-status")).toHaveText("not paid", { timeout: 30_000 });
+      await expect(screen.getByRole("link", "choose another way to pay")).toBeVisible();
 
       const { result: order } = await paypal.getOrder({ id: orderId });
       expect(order.status).toBe(OrderStatus.Approved);
@@ -123,7 +123,7 @@ describe("redirect checkout", { tags: ["redirect"], skip, retries: 2, timeout: 1
     // PayPal's link goes to cancel_url; the browser's back button would skip it.
     await agent.act("leave PayPal with the Cancel and return to e2e link");
     await expect(browser).toHaveURL(`/?token=${orderId}`);
-    await expect(screen.getByRole("button", "Pay with PayPal")).toBeVisible();
+    await expect(screen.getByRole("button", "pay with PayPal")).toBeVisible();
 
     expect((await paypal.getOrder({ id: orderId })).result.status).toBe(OrderStatus.PayerActionRequired);
   });

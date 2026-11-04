@@ -40,7 +40,7 @@ export const test = withPayPal.extend<{ startCheckout: StartCheckout }>({
   startCheckout: async ({ browser, screen }, use) => {
     await use(async () => {
       const redirect = browser.waitForResponse("**/checkout");
-      await screen.getByRole("button", "Pay with PayPal").click();
+      await screen.getByRole("button", "pay with PayPal").click();
       const location = (await redirect).headers.location ?? "";
       const orderId = URL.canParse(location) ? new URL(location).searchParams.get("token") : null;
       if (!orderId) throw new Error(`POST /checkout redirected to "${location}", not to a PayPal order`);

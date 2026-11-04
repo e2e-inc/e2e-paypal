@@ -2,13 +2,13 @@
 
 A checkout that takes real PayPal payments in the PayPal sandbox, used as an example of end-to-end testing a payment page you don't own with [e2e](https://www.npmjs.com/package/e2e).
 
-![Checkout page with the order and a Pay with PayPal button](docs/screenshot.png)
+![Checkout page with the order and a pay with PayPal button](docs/screenshot.png)
 
 ## How it works
 
 The shopper leaves for PayPal's own checkout page, pays there, and comes back:
 
-- **Checkout** (`app/page.tsx`) shows the order and a Pay with PayPal button.
+- **Checkout** (`app/page.tsx`) shows the order and a pay with PayPal button.
 - **`POST /checkout`** (`app/checkout/route.ts`) creates a PayPal order and redirects to PayPal's checkout page on `sandbox.paypal.com`.
 - **`GET /capture`** (`app/capture/route.ts`) is where PayPal sends the shopper back after they approve. It takes the payment.
 - **Return page** (`app/return/page.tsx`) asks PayPal for the order and shows the result. When PayPal refuses the payment, it offers another way to pay.

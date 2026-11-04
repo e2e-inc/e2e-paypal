@@ -7,21 +7,25 @@ export function ResultPanel({ status, detail, rows = [], pending = false }: Resu
   return (
     <section
       aria-labelledby="result-heading"
-      className="flex flex-col gap-2 border border-e2e-hairline-strong bg-e2e-panel p-5"
+      className="flex flex-col gap-e2e-1 border border-e2e-neutral-800 bg-e2e-neutral-800/40 p-e2e-3"
     >
-      <h1 id="result-heading" className="type-label-xs text-e2e-text-faint">
-        Payment
+      <h1 id="result-heading" className="type-caption text-e2e-neutral-500">
+        payment
       </h1>
-      <p data-testid={pending ? undefined : "payment-status"} className="type-h3-display text-e2e-text-bright">
+      <p data-testid={pending ? undefined : "payment-status"} className="mt-e2e-1 type-h3 text-e2e-off-white">
         {status}
       </p>
-      <p className="type-body-s text-e2e-text-soft">{detail}</p>
+      <p className="type-body-m text-e2e-neutral-300">{detail}</p>
       {rows.length > 0 && (
-        <dl className="mt-3 flex flex-col gap-2 border-t border-e2e-hairline-strong pt-4 type-body-s">
+        <dl className="mt-e2e-2 flex flex-col gap-e2e-1 border-t border-e2e-neutral-800 pt-e2e-2">
           {rows.map((row) => (
-            <div key={row.label} className="flex justify-between gap-4">
-              <dt className="text-e2e-text-faint">{row.label}</dt>
-              <dd className={row.mono ? "truncate type-code-s text-e2e-text-soft" : "text-e2e-text-soft"}>
+            <div key={row.label} className="flex items-baseline justify-between gap-e2e-2">
+              <dt className="shrink-0 type-caption text-e2e-neutral-500">{row.label}</dt>
+              <dd
+                className={
+                  row.mono ? "truncate type-code-s text-e2e-neutral-300" : "truncate type-body-s text-e2e-neutral-300"
+                }
+              >
                 {row.value}
               </dd>
             </div>
