@@ -29,7 +29,7 @@ default.
      timeout, changing values at a race;
    - what the app logged meanwhile (`✗ network error: POST /api/save 500`,
      `✗ uncaught error: ...`, `⚠ console warning: ...`, `ℹ console: ...`);
-     `❯ app 2 errors` in the terminal says there are some, and the page's
+     `❯ app 2 errors` in the terminal quotes the first 3 errors, and the page's
      `## App log` lists up to 50 with their step, errors and warnings
      first, counting the rest;
    - where the page went (`↪ navigated to /login`, a new tab the app
@@ -99,7 +99,9 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | --- | --- | --- |
 | `CONFIG_LOAD_FAILED` | The config throws while loading (a refused engine option is `INVALID_CONFIG` instead) or imports a missing package, subpath, or removed export such as `defineConfig` | Install the dependency, or fix the import or line quoted |
 | `INVALID_CONFIG`, `INVALID_GLOB` | Unknown or foreign key (`app`, `webServer`, `use`, `projects`, `baseURL`), `json` with `list`; a `tests` glob with braces, classes, an absolute path, or no wildcard | The message names the key or glob to write; the app is declared in the target's `app` |
-| `CONFIG_NOT_FOUND`, `CONFIG_AMBIGUOUS` | Wrong `--config` path; both `.ts` and `.mts` present | Fix the path; keep one |
+| `CONFIG_NOT_FOUND` | Wrong `--config` path, or an MCP `open_session` in a directory with no config | Fix the path; in a directory with no config, pass `engine` to `open_session` (topic `mcp`) |
+| `CONFIG_AMBIGUOUS` | Both `.ts` and `.mts` present | Keep one |
+| `ENGINE_NOT_INSTALLED` | An MCP `open_session {engine}` named a package that is not in the project, beside e2e, or in `~/.e2e/engines` | Run the install command the message names |
 | `NO_TESTS` | The glob, a positional, or a filter matched nothing; the message names each empty positional and each undeclared `--tag` with the nearest declared one | Check the config `tests`, the file suffix (`.e2e.ts` by default), the tag names |
 | `NO_LAST_RUN` | `--last-failed` found no `.e2e/report.json` | Run once without it |
 | `INVALID_CHANGED_SINCE` | `--changed-since` names no commit in the checkout, shares no history with HEAD (a shallow clone, or unrelated histories), or git is missing | Run from a git checkout with git installed; check the ref; fetch it and more history (`git fetch --unshallow`, or `fetch-depth: 0` on `actions/checkout`); for unrelated histories, name a ref on HEAD's history |
@@ -107,7 +109,7 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | `HOOK_FAILED` | `beforeAll` or `afterAll` threw; its scope's tests skip | Fix the hook; the report carries its error |
 | `UNSUPPORTED_ARTIFACT` | A test's or target's `video` on an engine that cannot record | Drop it there, or set it at the config root or CLI (such targets skip with a notice) |
 | `BROWSER_INSTALL_FAILED`, `LAUNCH_TIMEOUT` | Browser download failed; engine init or attempt start exceeded `launchTimeout` | Run the quoted `npx @e2e-dev/web install <names>` or `pnpm exec e2e-web install <names>` (`--with-deps` on bare Linux); raise the root `launchTimeout` (60 s default) |
-| `APP_UNREACHABLE` | `app.command` never answered `readyUrl` within `startupTimeout`; on a device, a message naming the iOS automation runner: the runner failed, not the app | Read the quoted log lines; check the port, `app.url`, `app.command.env`, `app.command.startupTimeout`. Runner: rerun, else `npx agent-device daemon stop` and reboot the simulator |
+| `APP_UNREACHABLE` | The app failed readiness or its command exited. An exit after readiness stops only dependent targets with unfinished work. On a device, the message can identify a failed iOS automation runner | Read the exit details and any log excerpt. Set `app.command.log` if requested. Check `app.url`, the port, and the command settings. Runner: rerun, else `npx agent-device daemon stop` and reboot the simulator |
 | `APP_ALREADY_RUNNING` | Something already serves `url` when `command` should start, such as the app an open `e2e mcp` session started | A session's app: `close_session` before the run (topic `mcp`). Otherwise stop it if you started it, else offer the user `reuseExisting: true` (CI ignores it) |
 | `APP_URL_REQUIRED`, `APP_NOT_OPEN` | A navigation on a target without `app.url`; a `screen` call before `app.open()` | Add `app.url` to the target; open the app first |
 | `INVALID_ARGUMENT`, `INVALID_LOCATOR` | A step argument failed validation; a locator got a bad option or filter key | Fix the call the code frame names |
@@ -116,14 +118,14 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | `ASSERTION_FAILED` | Wrong expectation, or the state settles later than 5 s; for `agent.assert`, a false judgment (explained in the report) | Compare with the report's actual text or the screenshot; `{ timeout }` on the matcher; rewrite the question |
 | `ASSERTION_INCONCLUSIVE` | `agent.assert` or `agent.extract` asked about what the screen does not show (another page, still loading, only in pixels, inside a frame from another site); a failure, never a pass | `app.open()` or `agent.waitFor` the right screen first; ask about what is shown; `vision: true` when the answer is in pixels (the message says so) |
 | `MODEL_OUTPUT_INVALID` | An `extract` or `assert` answer failed the schema after one repair round | Simplify the schema or question; pick a stronger model |
-| `ACTION_FAILED` | Element not actionable (covered, disabled, detached), or an operation timed out | `expect` the condition first; close overlays; check `actionTimeout` |
+| `ACTION_FAILED` | Element not actionable (covered, disabled, detached), or an operation timed out | `waitFor` the condition right before the action that failed; close overlays; check `actionTimeout` |
 | `TEST_TIMEOUT` | The attempt exceeded `timeout` (120 s) | Split the test, or raise `timeout` |
 | `STEP_NOT_AWAITED` | The body returned while a step or `expect.poll` still ran, or an `afterEach` hook or fixture teardown returned while an `expect.poll` still ran: a call without `await` | `await` the call the code frame names (every `app`, `agent`, `screen`, `expect`, `expect.poll` call) |
 | `MODEL_UNAVAILABLE` | `agents.<name>.model` holds no AI SDK instance: reported once under `run.errors` at the first `agent` fixture; the run stops. A model-less custom executor fails only `waitFor` and `extract` this way. Also GitHub Copilot refusing the configured model to the account (`model_not_supported`, a plan or settings limit the listing cannot show): reported once at the first call, the run stops | Construct one, e.g. `gateway('openai/gpt-6-luna-fast')` from `ai`, and export its key (`AI_GATEWAY_API_KEY`); for Copilot, pick an id the plan serves |
 | `MODEL_PROVIDER_FAILED` | Network, 5xx, rate limit, no credits, or no response in 120 s, after the transport retries | Check the credential (the key; for keyless `gateway()` the Vercel CLI login and `.vercel/project.json`) and quota; retry (exit 3) |
 | `MODEL_REFUSED` | The model refused the prompt (finish reason `content-filter`). Exit 1 | Rephrase the prompt or instruction, or switch to a different model |
 | `REPLAY_STALE` | `--strict-cache` or `cache.strict`, and a committed recording no longer replays; `step.cache.reason` says why | Rerun read-write with the knob the message names off; commit the changed entry under the directory it names (a custom `cache.store` is written by that run) |
-| `AUTOMATION_UNSUPPORTED` | The step needs an interaction the engine's toolset lacks (drag on a device, say); blocked, exit 1 | Do that step with `screen` actions, or run the test on a target that supports it |
+| `AUTOMATION_UNSUPPORTED` | The step needs an interaction the engine's toolset lacks (a right-click on a device, say); blocked, exit 1 | Reach the result another way the engine supports (a long press, a menu button), or run the test on a target that supports it |
 | `STEP_TIMEOUT`, `STEP_BUDGET_EXHAUSTED` | Goal too big or ambiguous, or a slow provider | Split the goal, use on-screen wording, add vocabulary via `agents.<name>.context` or `agentContext`; raise `maxSteps` or `maxModelCalls` (budget), the config `timeout` (`act`), `judgmentTimeout` (judgments); `--debug` |
 | `CONTEXT_OVERFLOW` | Screen plus step history did not fit the model's context window (`act` after one shrink-and-retry; a judgment on the first overflow) | Lower `agents.<name>.maxObservationBytes`, split the step, or pick a larger-window model |
 | `POLICY_DENIED` | A URL whose scheme is not `http:` or `https:` (`file:`, `view-source:`, `data:`); a password `Secret` into a non-password sink; reading a secure field, `toHaveValue`, `toHaveText`, `toContainText`, `toHaveAttribute` included; `vision: 'only'` with pixels withheld | http(s) or `about:blank` only; passwords into password inputs only; assert the outcome, not the value |
@@ -138,9 +140,10 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | Do | When |
 | --- | --- |
 | `--headed` | Watch the failing step |
+| `--step --headed` | A person steps through the test one key per step |
 | `--workers 1 --retries 0` | Take parallelism and retries out of the picture |
 | `--action-timeout 5000` | While writing a test: a wrong locator fails in 5 s instead of 30 s (`--assertion-timeout` for `expect`). Keep it longer than the slowest screen takes to load |
-| `--no-cache` | Rule out a stale `agent.act` replay; one run, not every rerun. A failed run already deletes the replay that ran into the failure, so rerun with the cache on first. When the failure repeats after a replay the trace page shows as kept and the `--no-cache` run passes, tighten the check after that goal: the stale replay then fails it and is deleted |
+| `--no-cache` | Rule out a stale `agent.act` replay; one run, not every rerun. A failed run already deletes the replay that ran into the failure, so rerun with the cache on first. When the failure repeats after a replay the trace page shows as kept and the `--no-cache` run passes, tighten the next check or wait after that goal (the arrange block's closing wait, or the assertions): the stale replay then fails it and is deleted |
 | `--debug` | Each agent step's duration, model calls, cost, transcript |
 | `--ai-trace`, then `npx unbox-ai runs .e2e/ai-trace.json` | What the model saw and called |
 | `--video`, `--video=retain-on-failure` | Watch the failed attempt; `step.startedAt` minus the segment's `startedAt` is the step's offset into it |
