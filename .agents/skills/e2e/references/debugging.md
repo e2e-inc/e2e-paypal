@@ -132,6 +132,7 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | `UNSUPPORTED_CAPABILITY` | A fixture the engine lacks (`browser` on a device), `schema` or `vision` on `act`, an action the surface lacks | Declare `requires: ['browser']`; drop the option or action |
 | `SESSION_UNAVAILABLE`, `SESSION_CONTRACT` | `session: 'x'` with no setup saving `x`; a setup that skipped a declared name. `SESSION_MISMATCH`, `SESSION_EXPIRED`, `SESSION_INVALID`: the stored session is another run's or app's, expired, or corrupt | Add or fix the `test.setup`; rerun it |
 | `ONLY_IN_CI` | `test.only` reached CI | Remove it |
+| `PAUSE_UNAVAILABLE` | `screen.pause()` reached CI | Remove it before you commit, or ask the user to run the test with `e2e run` in a terminal |
 | `AUTH_CREDENTIAL_UNAVAILABLE`, `AUTH_CREDENTIAL_INVALID` | `credentials.user('x')` for an undeclared name; the app rejected a configured credential | Add it to `config.credentials`; fix the stored value |
 | `SECRET_UNAVAILABLE` | `secrets.get('x')` for an undeclared name | Add it to `config.secrets`; `E2E_SECRET_X` only overrides a declared one |
 
@@ -141,6 +142,8 @@ jq '.run.results[] | select(.selected and .status != "passed") | .attempts[-1]
 | --- | --- |
 | `--headed` | Watch the failing step |
 | `--step --headed` | A person steps through the test one key per step |
+| `--step`, then `e2e run --step next` | An agent steps through the test: each command prints how the step it ran ended and returns at the next held step with the screen it waits on; `stop` ends the run |
+| `await screen.pause()` in the test | Pause the test at that line, with the app open, each time the line runs, in any `e2e run`. Call it with `await` between steps in fixture setup, `beforeEach`, or the body. Anywhere else, the test isn't paused. Paused time doesn't count toward any timeout. In a terminal, the user presses Enter to resume or `q` to quit. Without a terminal, the pause is printed with its screen. There, a run with a paused test is stopped after 30 minutes without a command. With or without a terminal, run `e2e run --step next` from the same directory to resume the test, or `e2e run --step stop` to end the run. |
 | `--workers 1 --retries 0` | Take parallelism and retries out of the picture |
 | `--action-timeout 5000` | While writing a test: a wrong locator fails in 5 s instead of 30 s (`--assertion-timeout` for `expect`). Keep it longer than the slowest screen takes to load |
 | `--no-cache` | Rule out a stale `agent.act` replay; one run, not every rerun. A failed run already deletes the replay that ran into the failure, so rerun with the cache on first. When the failure repeats after a replay the trace page shows as kept and the `--no-cache` run passes, tighten the next check or wait after that goal (the arrange block's closing wait, or the assertions): the stale replay then fails it and is deleted |

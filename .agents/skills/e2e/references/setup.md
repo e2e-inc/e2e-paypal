@@ -47,7 +47,8 @@ Gateway, installs the skill in `.agents/skills/` (`.claude/skills/e2e`
 symlinks to it), registers MCP in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`, skips
 installing dependencies. A flag per question overrides one default:
 `--engine` (`web,mobile` for both), `--gateway`, `--endpoint`, `--skills`,
-`--mcp` (comma-separated locations, or `none`), `--install`; `npx e2e init --help` lists the values.
+`--mcp` (comma-separated locations, or `none`), `--ci github-actions`, `--ci gitlab`, or `--ci none` (a
+pipeline with a job per platform; `--yes` writes none), `--install`; `npx e2e init --help` lists the values.
 To start a new app from one of the repo's examples instead, run `npx e2e init
 my-app --example with-vite` (or `with-expo`, `with-flutter`, ...): it
 downloads the example into an empty directory with its config and tests, then
@@ -81,7 +82,7 @@ key, or a local endpoint. Authenticate:
 | ChatGPT Plus or Pro | `npx e2e login openai` |
 | GitHub Copilot | `npx e2e login github-copilot` (GitHub CLI signed in, or your own `--client-id`) |
 | OpenCode Console (OpenCode Zen and OpenCode Go) | `npx e2e login opencode-console` (approve the device code, pick the workspace) |
-| SuperGrok or X Premium+ | `npx e2e login spacexai` |
+| SuperGrok or X Premium+ | `npx e2e login spacexsi` |
 | Claude Max or Team | No `e2e login`: link a Claude Console organization in claude.ai for the plan's monthly API credits (Max: Settings > Billing; Team: an Owner under Organization settings > Billing), create an API key in it, set `ANTHROPIC_API_KEY`, use `anthropic('<id>')` from `@ai-sdk/anthropic` |
 | Vercel AI Gateway | Set `AI_GATEWAY_API_KEY`, or sign in to the Vercel CLI and `npx vercel link`; without the key `gateway()` uses a Vercel OIDC token |
 | OpenRouter | Set `OPENROUTER_API_KEY` |
@@ -162,7 +163,7 @@ or `E2E_USER_ADMIN_PASSWORD` first, or defer to fill time with
 | `cleanupTimeout` | `30000` | Each `afterEach` hook, fixture teardown, engine cleanup, ms. |
 | `retries` | `0`, `1` in CI | 0 to 10. |
 | `workers` | half the cores, `1` in CI | Parallel test files, capped by the `workers` the engine declares per target. |
-| `reporters` | `['list']` | `list`, `json`, `junit`, `markdown`, or `{ name, onEvent?, onRunFinished? }` objects; `json` excludes `list`, `--reporter` keeps the objects. |
+| `reporters` | `['list']` | `list`, `dot`, `json`, `junit`, `markdown`, or `{ name, onEvent?, onRunFinished? }` objects; `json` and `dot` each exclude `list`, `--reporter` keeps the objects. |
 | `cache` | `'read-write'` | `'read-write'`, `'read-only'`, `'off'`, or `{ mode, store, dir, strict }`; CI demotes only a defaulted mode to `'read-only'`. `strict` (`--strict-cache`) fails a step whose recording no longer replays (`REPLAY_STALE`) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
 | `agents` | `{ default: built-in }` | Tests run with `default`, `e2e run --agent <name>` picks another, entries never inherit from `default`. Options: topic `agent`. |
 | `filters` | `[]` | Test filters `{ name, filter(tests, context) }`, unique names, applied in order with `--changed-since <ref>`. Use `filters: [decisionFilter({ model: gateway.decisionModel('typesafe-ai/jev') })]`, with `decisionFilter` from `@e2e-dev/decision` and `gateway` from `ai` (install `@e2e-dev/decision ai`), to run only the tests a pull request can affect. `filter` gets candidates `{ id, file, titlePath, tags, setupFile? }` and a context `{ projectRoot, changes: { base, root, files }, configFile, signal, log, redact }` with repository-relative `files`, and returns `{ exclude: { [id]: reason }, relevance?: { [id]: 0 to 1 }, note? }`; every test it does not name runs, and `relevance` (how likely each test is to fail) makes each target start the likeliest files first. Read files, the environment, or the network inside `filter`, never at config load: workers load the config too. When filters run: topic `running`. |
@@ -214,7 +215,7 @@ start a script that brings them up and serves the app.
 
 | Option | Meaning |
 | --- | --- |
-| `browser` | `'chromium'` (default), `'firefox'`, `'webkit'`, or a `BrowserProvider` leasing hosted browsers over CDP ([`browserRun()`](https://e2e.com/docs/integrations/browser-run) from `@e2e-dev/browser-run`, `kernel()` from `@e2e-dev/kernel`, `smol()` from `@e2e-dev/smol`, `lightpanda()` from `@e2e-dev/lightpanda`, `testmuBrowsers()` from `@e2e-dev/testmu/web`, `e2bBrowsers()` from `@e2e-dev/e2b/web`, or your own), which implies chromium and excludes `connect`. Scope `'worker'` (default): one browser per worker slot from `prepare` to `finish`; `'attempt'`: one per attempt, with `reconnectEndpoint`'s limits (`lightpanda()` and `testmuBrowsers()` are worker scope only). |
+| `browser` | `'chromium'` (default), `'firefox'`, `'webkit'`, or a `BrowserProvider` leasing hosted browsers over CDP ([`browserRun()`](https://e2e.com/docs/integrations/browser-run) from `@e2e-dev/browser-run`, `kernel()` from `@e2e-dev/kernel`, `notte()` from `@e2e-dev/notte`, `smol()` from `@e2e-dev/smol`, `lightpanda()` from `@e2e-dev/lightpanda`, `moli()` from `@e2e-dev/moli`, `testmuBrowsers()` from `@e2e-dev/testmu/web`, `e2bBrowsers()` from `@e2e-dev/e2b/web`, or your own), which implies chromium and excludes `connect`. Scope `'worker'` (default): one browser per worker slot from `prepare` to `finish`; `'attempt'`: one per attempt, with `reconnectEndpoint`'s limits (`lightpanda()`, `moli()`, and `testmuBrowsers()` are worker scope only; `notte()` is attempt scope only). |
 | `viewport` | `{ width, height }`, default 1280x720; `null` follows the browser window (hosted live view, headed run). On a headed hosted browser (Kernel) use `null` and size the service's screen; a fixed size gives a smaller, unmaximized window. |
 | `connect` | `{ cdpEndpoint }` attaches to a remote Chromium over CDP; `cdpEndpoint` is required, and both it and `reconnectEndpoint` are resolvers `(signal) => url` or `(signal) => ({ endpoint, headers })` for authenticated CDP connections, not strings, else `INVALID_CONFIG` at load. With `reconnectEndpoint` it rides one persistent default context, needs a fresh browser from `cdpEndpoint` every attempt, and reconnects only to the original browser and page. |
 | `headers` | Sent to the app's origin only (scheme, host, and port of `app.url`; Vercel's `x-vercel-protection-bypass`, ngrok's `ngrok-skip-browser-warning`), `agent.act` included; `credentialOrigins: ['https://api.example.com']` adds exact origins for `headers` and `basicAuth`. A request keeps them through its redirects, to any origin. Disables the browser HTTP cache and service workers. |
@@ -349,7 +350,7 @@ export default {
 - `app.bundleId`: bundle id, package name, or display name `app.open()`
   launches fresh (an attempt launches nothing itself; without it, the
   installed build). `app.appPath`: the `.app` or `.apk` under test; the
-  engine installs nothing, so a fixture every test takes calls
+  engine installs nothing, so a worker fixture with `auto: true` calls
   `device.installApp()` once per device (no path installs `app.appPath`).
   `app.launchArguments` and `app.permissions` ride every fresh launch:
   arguments reach the app process (iOS) or `am start` (Android), permissions
@@ -366,9 +367,9 @@ export default {
   `locale` on `browserstack()` or `testmu()`, on a local one set the device's
   language.
 - One worker per device. No `device`: every booted simulator or emulator of
-  the platform, and every connected phone, is the pool, up to `workers`,
+  the platform, and every reachable paired iPhone or iPad or connected Android phone, is the pool, up to `workers`,
   minus devices another agent-device session holds (none booted: agent-device boots
-  a shut-down one, newest OS first, then name order; all held: `prepare` fails); one `device`: one worker whatever `workers` says; a list (`device:
+  a shut-down one, on iOS an iPhone over an iPad over an Apple TV, on Android a phone or tablet over a TV, then the newest OS, then name order; all held: `prepare` fails); one `device`: one worker whatever `workers` says; a list (`device:
   ['iPhone 17', 'iPhone 17 Pro']`): an explicit pool. Devices boot in
   `prepare`, before the run's clock. Two sessions on one device fight over
   it: for parallel MCP sessions or bug-bash explorers, declare one target per
@@ -393,6 +394,12 @@ export default {
   exactly, TestMu AI installs `app` (omit `app.appPath`), and it reads
   `LT_USERNAME` and `LT_ACCESS_KEY`. An attempt's video links TestMu AI's
   recording of the whole session.
+- `revyl({ app, device, osVersion })` from `@e2e-dev/revyl` leases Revyl
+  hosted iOS simulators and Android emulators; `device` and `osVersion` are
+  names from Revyl's catalog, Revyl installs `app` from an `https` URL (omit
+  `app.appPath`; a local path is refused), and it reads `REVYL_API_KEY`.
+  Revyl devices record no video, so `--video` fails with
+  `UNSUPPORTED_CAPABILITY`.
 - `browserstack({ device, osVersion, app })` from `@e2e-dev/browserstack`
   leases BrowserStack App Automate real devices; `device` and `osVersion`
   match its catalog exactly, BrowserStack installs `app` (a `bs://` id, an
